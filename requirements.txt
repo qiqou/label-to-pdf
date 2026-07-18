@@ -1,0 +1,3 @@
+PySide6>=6.6
+qdarkstyle>=3.2
+pyinstaller>=6.0
