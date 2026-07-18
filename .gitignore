@@ -1,0 +1,16 @@
+# Python 构建产物
+__pycache__/
+*.pyc
+*.pyo
+*.spec
+build/
+dist/
+打包完成/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# ImageMagick exe 很大，不提交到 repo
+# 用户从官网下载或拷贝本地 exe 即可
+ImageMagick*.exe

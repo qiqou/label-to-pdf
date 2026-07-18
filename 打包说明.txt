@@ -1,0 +1,35 @@
+# 打包说明
+
+## 环境要求
+- Windows 10/11
+- Python 3.10+
+- 管理员权限（安装依赖时需要）
+
+## 打包步骤
+
+### 1. 安装 Python
+从 https://www.python.org/downloads/ 下载 Python 3.10+
+**安装时勾选「Add Python to PATH」**
+
+### 2. 安装依赖
+```cmd
+pip install PySide6 qdarkstyle pyinstaller
+```
+
+### 3. 打包
+```cmd
+cd C:\路径\放到图片转化工具文件夹
+pyinstaller --onefile --windowed --name "快递单转PDF" --icon NUL main.py
+```
+
+### 4. 部署
+打包完成后：
+- 把 `dist\快递单转PDF.exe` 复制到 `ImageMagick-7...exe` 同目录
+- 双击 `快递单转PDF.exe` 即可运行
+
+## Windows 下调试
+如果程序启动闪退，在 cmd 里运行：
+```cmd
+"C:\路径\快递单转PDF.exe"
+```
+错误信息会显示在 cmd 窗口里，不会一闪而过。
