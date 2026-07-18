@@ -37,12 +37,45 @@ def get_base_dir() -> Path:
 
 
 def find_magick():
-    """在程序目录下找 ImageMagick exe，返回 Path 或 None"""
+    """找 ImageMagick：PATH → 安装目录 → 同目录"""
+    # 1) 试试 PATH 里的 magick（安装了就会在 PATH 里）
+    magick = shutil.which("magick")
+    if magick:
+        return Path(magick)
+
+    # 2) 常见安装路径（Windows）
+    candidates = [
+        r"C:\Program Files\ImageMagick\magick.exe",
+        r"C:\Program Files\ImageMagick-7.0.11-Q16-HDRI\magick.exe",
+    ]
+    if sys.platform == "win32":
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                r"SOFTWARE\ImageMagick\Current") as key:
+                install_path = winreg.QueryValueEx(key, "BinPath")[0]
+                candidates.insert(0, Path(install_path) / "magick.exe")
+        except OSError:
+            pass
+        # 也搜一下 Program Files
+        for pf in [r"C:\Program Files", r"C:\Program Files (x86)"]:
+            base = Path(pf)
+            if base.is_dir():
+                for d in sorted(base.iterdir(), reverse=True):
+                    if "imagemagick" in d.name.lower():
+                        candidates.append(d / "magick.exe")
+
+    for c in candidates:
+        p = Path(c)
+        if p.is_file():
+            return p
+
+    # 3) 同目录下找静态版 exe（兜底）
     base = get_base_dir()
     for f in base.iterdir():
-        name = f.name.lower()
-        if 'imagemagick' in name and name.endswith('.exe') and f.is_file():
+        if 'imagemagick' in f.name.lower() and f.name.lower().endswith('.exe') and f.is_file():
             return f
+
     return None
 
 
@@ -206,8 +239,10 @@ class MainWindow(QMainWindow):
         # 检查 magick
         if not self.magick_path:
             QMessageBox.warning(self, "缺少依赖",
-                "找不到 ImageMagick 程序！\n"
-                f"请把它放在 {get_base_dir()} 目录下。")
+                "找不到 ImageMagick！\n\n"
+                "已安装的话：确认 magick 命令在 PATH 环境变量中\n"
+                "没安装的话：下载 https://imagemagick.org/script/download.php#windows\n"
+                "或者把 ImageMagick-xxx.exe 放在本程序同目录下")
 
     def _build_file_area(self, parent):
         gb = QGroupBox("待处理图片")
