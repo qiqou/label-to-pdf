@@ -75,11 +75,12 @@ class ConvertWorker(QThread):
     finished = Signal(str)
     error = Signal(str)
 
-    def __init__(self, files, magick_path, width, height, dpi,
+    def __init__(self, files, magick_path, output_dir, width, height, dpi,
                  do_trim, do_bw, merge_mode, unsharp, fuzz, log_path):
         super().__init__()
         self.files = files
         self.magick = str(magick_path)
+        self.outdir = Path(output_dir)
         self.width = width
         self.height = height
         self.dpi = dpi
@@ -103,16 +104,9 @@ class ConvertWorker(QThread):
 
     def run(self):
         try:
-            base = get_base_dir()
-            today = date.today().strftime("%Y%m%d")
-            # 避免覆盖上次输出：PDF输出_20260719, _2, _3 ...
-            outdir = base / f"PDF输出_{today}"
-            suffix = 0
-            while outdir.exists():
-                suffix += 1
-                outdir = base / f"PDF输出_{today}_{suffix}"
+            outdir = self.outdir
             outdir.mkdir(parents=True, exist_ok=True)
-            self._outdir = str(outdir)  # 存起来供错误时使用
+            self._outdir = str(outdir)
 
             with open(self.log_path, 'w', encoding='utf-8') as f:
                 f.write(f"快递单转PDF 日志 — {date.today()}\n{'='*40}\n")
@@ -297,6 +291,9 @@ class MainWindow(QMainWindow):
                 "        复制 magick.exe 到本程序同目录下\n"
                 "安装包下载：https://imagemagick.org/script/download.php#windows")
 
+        # 初始化默认输出路径
+        self._reset_output_path()
+
     def _build_file_area(self, parent):
         gb = QGroupBox("待处理图片")
         vbox = QVBoxLayout(gb)
@@ -395,6 +392,19 @@ class MainWindow(QMainWindow):
         right.addStretch()
         hbox.addLayout(right)
         parent.addWidget(gb)
+
+        # ── 输出位置 ──
+        dirbox = QHBoxLayout()
+        dirbox.addWidget(QLabel("输出位置："))
+        self.output_path = QLabel("")
+        self.output_path.setStyleSheet("color: #ccc; padding: 4px 8px; "
+                                        "border: 1px solid #555; border-radius: 4px;")
+        self.output_path.setWordWrap(True)
+        dirbox.addWidget(self.output_path, 1)
+        self.browse_btn = QPushButton("浏览...")
+        self.browse_btn.clicked.connect(self._browse_output)
+        dirbox.addWidget(self.browse_btn)
+        parent.addLayout(dirbox)
 
     def _build_progress(self, parent):
         gb = QGroupBox("进度")
@@ -556,6 +566,19 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     # ── 转换逻辑 ──────────────────────────────────────────
+    def _reset_output_path(self):
+        """重置为默认输出路径"""
+        today = date.today().strftime("%Y%m%d")
+        self._selected_output = str(get_base_dir() / f"PDF输出_{today}")
+        self.output_path.setText(self._selected_output)
+
+    def _browse_output(self):
+        folder = QFileDialog.getExistingDirectory(self, "选择输出文件夹",
+                                                   self._selected_output)
+        if folder:
+            self._selected_output = folder
+            self.output_path.setText(folder)
+
     def _set_busy(self, busy: bool):
         self.start_btn.setVisible(not busy)
         self.cancel_btn.setVisible(busy)
@@ -570,6 +593,7 @@ class MainWindow(QMainWindow):
         self.custom_width.setEnabled(not busy)
         self.custom_height.setEnabled(not busy)
         self.custom_dpi.setEnabled(not busy)
+        self.browse_btn.setEnabled(not busy)
 
     def _cancel_conversion(self):
         if self.worker and self.worker.isRunning():
@@ -605,7 +629,8 @@ class MainWindow(QMainWindow):
         self.progress_label.setText("启动中...")
 
         self.worker = ConvertWorker(
-            self.files.copy(), self.magick_path, w, h, dpi,
+            self.files.copy(), self.magick_path, self._selected_output,
+            w, h, dpi,
             self.trim_cb.isChecked(), self.bw_cb.isChecked(),
             self.merge_btn.isChecked(), "0x3.0", 5, str(log_path))
         self.worker.progress.connect(self._on_progress)
