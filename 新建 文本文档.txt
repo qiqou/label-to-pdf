@@ -1,1 +1,0 @@
-magick input.png -unsharp 0x3.0 -resize 945x945 -density 300 -units PixelsPerInch output.pdf
