@@ -147,8 +147,12 @@ class ConvertWorker(QThread):
     def _call_magick(self, args, label="") -> tuple[bool, str]:
         cmd_display = " ".join(str(a) if " " not in str(a) else f'"{a}"' for a in args)
         self._log(f"[{label}] {cmd_display}")
+        kwargs = dict(capture_output=True, text=True, timeout=600)
+        # Windows 下不弹黑框
+        if sys.platform == "win32":
+            kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
         try:
-            ret = subprocess.run(args, capture_output=True, text=True, timeout=600)
+            ret = subprocess.run(args, **kwargs)
         except subprocess.TimeoutExpired:
             self._log("[超时] 超过600秒")
             return False, "处理超时（超过10分钟），图片可能太大"

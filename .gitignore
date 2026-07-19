@@ -14,3 +14,7 @@ Thumbs.db
 # ImageMagick exe 很大，不提交到 repo
 # 用户从官网下载或拷贝本地 exe 即可
 ImageMagick*.exe
+
+# OpenCode 产生的临时文件
+.omo/
+.codegraph
